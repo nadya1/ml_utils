@@ -11,29 +11,20 @@ def create_linear_regression(dataset, target, features, validation_set=None, ver
 	"""Create a LinearRegression to predict a scalar target variable 
 	as a linear function of one or more features. 
 	More args:  solver='auto', feature_rescaling=True,convergence_threshold=0.01, 
-				step_size=1.0,lbfgs_memory_level=11, max_iterations=10 """
-	linear_reg_model = graphlab.linear_regression.create(dataset, target,features,
-												   validation_set=validation_set,
-												   verbose=verbose)
-	return linear_reg_model
+				step_size=1.0,lbfgs_memory_level=11, max_iterations=10 """ 
+	return graphlab.linear_regression.create(dataset, target,features, validation_set=validation_set, verbose=verbose)
 
-def create_logistic_classifier_model(dataset, target, features, validation_set=None, verbose=False):
-	logistic_model= graphlab.logistic_classifier.create(dataset,target,features,
-														validation_set=validation_set,
-														verbose=verbose)
-	return logistic_model
+def create_logistic_classifier_model(dataset, target, features, validation_set=None, verbose=False): 
+	return graphlab.logistic_classifier.create(dataset,target,features, validation_set=validation_set, verbose=verbose)
 
 def create_nearest_neighbors_model(dataset, features, label, distance=None, verbose=False):
-	return graphlab.nearest_neighbors.create(dataset,features=features,label=label,
-											 distance=distance, verbose=verbose)
+	return graphlab.nearest_neighbors.create(dataset,features=features,label=label, distance=distance, verbose=verbose)
 
 def create_popularity_recommender_model(dataset, user_id, item_id, verbose=False):
-	return graphlab.popularity_recommender.create(dataset, user_id=user_id,
-											 item_id=item_id, verbose=verbose)
+	return graphlab.popularity_recommender.create(dataset, user_id=user_id, item_id=item_id, verbose=verbose)
 
 def create_similarity_recommender_model(dataset, user_id, item_id, verbose=False):
-	return graphlab.item_similarity_recommender.create(dataset, user_id=user_id,
-											 item_id=item_id, verbose=verbose)
+	return graphlab.item_similarity_recommender.create(dataset, user_id=user_id, item_id=item_id, verbose=verbose)
 
 def get_text_analytics_count(txt_dataset):
 	"""Convert the content of string/dict/list type SArrays to a dictionary of
