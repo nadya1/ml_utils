@@ -1,0 +1,24 @@
+#"Compiled" Python files
+*.DS_Store
+*.pyc
+ 
+
+#Output (Excel & logs)
+*.xlsx
+*.xls
+*.csv
+*.log
+*.png
+
+#Windows Executable
+*.exe
+
+#hidden folders (git)
+*.iml
+*.xml
+*.ini
+*.idea
+ 
+build
+dist
+*.egg-info
