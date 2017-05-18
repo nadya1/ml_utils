@@ -7,13 +7,15 @@ def set_canvas_target(mode='browser'):
 	"""mode: brower, ipynb, headless, none"""
 	graphlab.canvas.set_target(mode)
 
-def create_linear_regression(dataset, target, features, validation_set=None, verbose=False):
+def create_linear_regression(dataset, target, features, l2_penalty=0.,l1_penalty=0., validation_set=None, verbose=False):
 	"""Create a LinearRegression to predict a scalar target variable 
 	as a linear function of one or more features. 
 	More args:  solver='auto', feature_rescaling=True,convergence_threshold=0.01, 
-				step_size=1.0,lbfgs_memory_level=11, max_iterations=10 """ 
-	return graphlab.linear_regression.create(dataset, target,features, validation_set=validation_set, verbose=verbose)
-
+				step_size=1.0,lbfgs_memory_level=11, max_iterations=10 """
+	model = graphlab.linear_regression.create(dataset, target, features,
+											  l2_penalty=l2_penalty,l1_penalty=l1_penalty,
+											  validation_set=validation_set,verbose=verbose)
+	return model
 def create_logistic_classifier_model(dataset, target, features, validation_set=None, verbose=False): 
 	return graphlab.logistic_classifier.create(dataset,target,features, validation_set=validation_set, verbose=verbose)
 
@@ -28,17 +30,17 @@ def create_similarity_recommender_model(dataset, user_id, item_id, verbose=False
 
 def get_text_analytics_count(txt_dataset):
 	"""Convert the content of string/dict/list type SArrays to a dictionary of
-    (word, count) pairs. e.g return [{'quick': 1, 'brown': 1, 'the': 1]"""
+	(word, count) pairs. e.g return [{'quick': 1, 'brown': 1, 'the': 1]"""
 	return graphlab.text_analytics.count_words(txt_dataset)
 
 def get_text_analytics_tf_idf(txt_dataset):
 	""" Compute the TF-IDF scores for each word in each document. The collection
-	    of documents must be in bag-of-words format."""
+		of documents must be in bag-of-words format."""
 	return graphlab.text_analytics.tf_idf(txt_dataset)
 
 def get_cosine_distance(SFrame_from, SFrame_to):
 	"""Compute the cosine distance between between two dictionaries or two
-    lists of equal length"""
+	lists of equal length"""
 	return graphlab.distances.cosine(SFrame_from,SFrame_to)
 
 #*******************
@@ -61,8 +63,10 @@ def transform_column_entry(sframe, col_name, col_entry, trasform_by):
 def select_column_from_entry(sframe, col_name, select_entry):
 	return sframe[sframe[col_name] == select_entry]
 
-def convert_sframe_to_simple_dict(sframe, sf_key_column, sf_values_column):
-	return dict(zip(list(sframe[sf_key_column]), list(sframe[sf_values_column])))
+def get_model_coefficients(model):
+	"""return a dict: e.g {'power_n': coeff_value}"""
+	coefficients = model.get("coefficients")
+	return convert_sframe_to_simple_dict(coefficients,'name','value')
 
 #*******************
 #  Python helpers  *
@@ -72,3 +76,7 @@ def find_key_max(dict_values):
 
 def find_key_min(dict_values):
 	return min(dict_values,key=dict_values.get)
+
+def convert_sframe_to_simple_dict(sframe, sf_key_column, sf_values_column):
+	return dict(zip(list(sframe[sf_key_column]), list(sframe[sf_values_column])))
+

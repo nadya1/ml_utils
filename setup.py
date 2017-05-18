@@ -1,4 +1,3 @@
-__author__ = 'nadyaK'
 __date__ = "04/01/2017"
 
 # !/usr/bin/env python
