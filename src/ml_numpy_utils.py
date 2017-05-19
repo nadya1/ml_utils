@@ -53,3 +53,17 @@ def print_coefficients(model):
     print "\nLearned polynomial:"
     print np.poly1d(w)
     return w
+
+def normalize_features(feature_matrix, axis=0):
+    norms = np.linalg.norm(feature_matrix, axis=axis)
+    normalized_features = feature_matrix / norms
+    return (normalized_features, norms)
+
+def get_normalized_data(dataset,features,target):
+    feature_matrix,output = get_numpy_data(dataset,features,target)
+    feature_matrix_norm,norms = normalize_features(feature_matrix)
+    return feature_matrix_norm, output, norms
+
+def get_nonzero_weights(weights):
+    weights_nnz = np.array(weights).nonzero()
+    return weights[weights_nnz]

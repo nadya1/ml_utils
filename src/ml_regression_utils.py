@@ -1,3 +1,4 @@
+# coding=utf-8
 __author__ = 'nadyaK'
 __date__ = '04/09/2017'
 
@@ -189,7 +190,106 @@ class RidgeRegression(object):
 
 		return iteration, weights
 
+class LassoRegression(object):
+	"""Lasso Regression Model"""
 
+	def __init__(self):
+		self.__name__ = 'lasso_regression_model'
+
+	def create_lasso_regression(self, training, validation, model_info, max_nonzeros=0):
+		""" customized function to answer week5-quiz"""
+		RSS_best, L1_best, best_model = None, None, None
+		l1_penalty_min, l1_penalty_max = None, None
+		max_num_of_nnz, min_num_of_nnz = None, None
+		continue_search = True
+		L1_penalities = model_info['L1_penalties']
+		target = model_info['target']#price
+		features = model_info['features']
+
+		for l1_penalty in L1_penalities:
+			current_model = gp.graphlab.linear_regression.create(training,target=target,features=features,
+				validation_set=None,verbose=False,l2_penalty=0.,l1_penalty=l1_penalty)
+			predictions = current_model.predict(validation)
+
+			RSS = compute_RSS(predictions,validation['price'])
+			print "L1 penalty (%.2f)\t\tRSS=%s" % (l1_penalty,RSS)
+			if RSS_best is None or RSS < RSS_best:
+				RSS_best = RSS
+				L1_best = l1_penalty
+				best_model = current_model
+
+			if max_nonzeros:
+				current_num_nnz = current_model.coefficients['value'].nnz()
+				print "\t\tNon-Zeros: %s" % current_num_nnz
+
+				if continue_search:
+					#The largest l1_penalty that has more non-zeros than max_nonzeros
+					if current_num_nnz > max_nonzeros:
+						max_num_of_nnz = current_num_nnz
+						l1_penalty_min = l1_penalty
+					else:
+						min_num_of_nnz = current_num_nnz
+						l1_penalty_max = l1_penalty
+						continue_search = False
+
+		lasso_info = {'RSS_best':RSS_best,'L1_best':L1_best,'Best model':best_model,
+					'l1_penalty_min':l1_penalty_min,'l1_penalty_max':l1_penalty_max,
+					'max_num_of_nnz':max_num_of_nnz,'min_num_of_nnz':min_num_of_nnz}
+
+		return lasso_info
+
+	def compute_ro(self, i, feature_matrix, output, weights):
+		""" whenever ro[i] falls between -l1_penalty/2 and l1_penalty/2,
+		 the corresponding weight w[i] is sent to zero 
+		 ro[i] = SUM[ [feature_i]*(output - prediction + w[i]*[feature_i]) ] """
+		prediction = np_utils.predict_output(feature_matrix,weights)
+		# Numpy vector for feature_i
+		feature_i = feature_matrix[:,i]
+		ro_i = (feature_i * (output - prediction + weights[i] * feature_i)).sum()
+
+		return ro_i
+
+	def lasso_coordinate_descent_step(self, i, feature_matrix, output, weights, l1_penalty):
+		""" cyclical coordinate descent with normalized features 
+		   where we cycle through coordinates 0 to (d-1) in order
+		   and assume the features were normalized. 
+			       ┌ (ro[i] + lambda/2)     if ro[i] < -lambda/2
+			w[i] = ├ 0                      if -lambda/2 <= ro[i] <= lambda/2
+			       └ (ro[i] - lambda/2)     if ro[i] > lambda/2 """
+
+		ro_i = self.compute_ro(i, feature_matrix, output, weights)
+
+		if i == 0: # intercept -- do not regularize
+			new_weight_i = ro_i
+		elif ro_i < -l1_penalty / 2.:
+			new_weight_i = ro_i + l1_penalty / 2
+		elif ro_i > l1_penalty / 2.:
+			new_weight_i = ro_i - l1_penalty / 2
+		else:
+			new_weight_i = 0.
+
+		return new_weight_i
+
+	def lasso_cyclical_coordinate_descent(self, feature_matrix, output, weights, l1_penalty, tolerance):
+		""" cyclical coordinate descent where we optimize 
+			coordinates 0, 1, ..., (d-1) in order and repeat. 
+			self.lasso_coordinate_descent_step: optimizes the cost function over a single coordinate
+		"""
+		converged = False
+		while not converged:
+			max_steps = 0
+			for i in range(len(weights)):
+				old_weights_i = weights[i]
+
+				weights[i] = self.lasso_coordinate_descent_step(i,feature_matrix,output,weights,l1_penalty)
+				#             print "old:%s vs new:%s"%(old_weights_i, weights[i])
+				max_steps += abs(old_weights_i - weights[i])
+				#             if change_in_coordinate > max_steps:
+				#                 max_steps = change_in_coordinate
+				if max_steps < tolerance:
+					converged = True
+
+		return weights
 #==================================================================
 #                 Polynomial Regression Functions
 #==================================================================

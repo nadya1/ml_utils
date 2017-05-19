@@ -16,6 +16,7 @@ def create_linear_regression(dataset, target, features, l2_penalty=0.,l1_penalty
 											  l2_penalty=l2_penalty,l1_penalty=l1_penalty,
 											  validation_set=validation_set,verbose=verbose)
 	return model
+
 def create_logistic_classifier_model(dataset, target, features, validation_set=None, verbose=False): 
 	return graphlab.logistic_classifier.create(dataset,target,features, validation_set=validation_set, verbose=verbose)
 
@@ -63,10 +64,16 @@ def transform_column_entry(sframe, col_name, col_entry, trasform_by):
 def select_column_from_entry(sframe, col_name, select_entry):
 	return sframe[sframe[col_name] == select_entry]
 
-def get_model_coefficients(model):
+def get_model_coefficients_dict(model):
 	"""return a dict: e.g {'power_n': coeff_value}"""
 	coefficients = model.get("coefficients")
 	return convert_sframe_to_simple_dict(coefficients,'name','value')
+
+def get_nonzero_weights_features(model):
+	""" e.g coeff_dict: {'bedroom': 3.0, 'waterfromt:0.0}
+		return a list nnz: e.g ['bedroom']""" 
+	coeff_dict = get_model_coefficients_dict(model)
+	return filter(lambda x: coeff_dict[x] > 0, coeff_dict)
 
 #*******************
 #  Python helpers  *
