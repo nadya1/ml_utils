@@ -1,3 +1,4 @@
+# coding=utf-8
 __author__ = 'nadyaK'
 __date__ = '04/09/2017'
 
@@ -92,3 +93,33 @@ def single_prediction_k_nearest_neighbors(k, source, matrix_query, output_values
 		e.g: output_train[[6, 10]] """
 	k_nearest = find_k_nearest_neighbors(k, source, matrix_query)
 	return np.average(output_values[k_nearest])
+
+def probability_predictions(scores):
+	""" Sigmoid function
+	    P(yi=+1|xi,w)= 1/(1+exp(−wTh(xi))"""
+	# return map(lambda xi: 1/float(1+math.exp(-xi)),scores)
+	predictions = 1 / (1. + np.exp(-scores)) #exp (takes np.arrays)
+	return predictions
+
+def compute_probabilities(features, weights):
+	""" h(x) = intercept + slope*x --> w0x0 + w1xi1 + w2xi2 ... 
+		e.g: x0 = [1,1,1,1] #intercept, x1 = [2,0,3,4] ...
+	    features = np.array([x0,x1,x2])
+	    weights = np.array([0,1,-2])
+	    return np.array([0.05 0.02 0.05 0.88])
+	"""
+	probabilities = []
+	for idx in range(len(features[0])):
+		hx = np.dot(features[:,idx],weights) # #extrace rows per features
+		probabilities.append(probability_predictions(hx))  # sigmoid function
+	return np.array(probabilities)
+
+def compute_derivative_for_wi(feature_i, output, probabilities):
+	"""Contribution to derivative for w1 """
+	output = np.array(map(lambda y: 0 if y <=0 else 1, output))
+	return (feature_i * (output-probabilities)).sum()
+
+def compute_accuracy(n_correct, n_total):
+	""" accuracy = # correctly classified examples / total examples"""
+	return n_correct/n_total
+

@@ -2,6 +2,7 @@ __author__ = 'nadyaK'
 __date__ = "04/01/2017"
 
 import graphlab
+import string
 
 def set_canvas_target(mode='browser'):
 	"""mode: brower, ipynb, headless, none"""
@@ -75,6 +76,17 @@ def get_nonzero_weights_features(model):
 	coeff_dict = get_model_coefficients_dict(model)
 	return filter(lambda x: coeff_dict[x] > 0, coeff_dict)
 
+def get_topk_from_sframe(sf, col_name, topk, order_reverse=False):
+	"""order_reverse: True (least topk) False (most topk)"""
+	return sf.topk(col_name,k=topk,reverse=order_reverse)
+
+def sframe_dict_trim(sf, col_name, significant_words, exclude=False):
+	"""e.g  sf = graphlab.SArray([{"this":1, "is":1, "dog":2}, {"and":2....}])
+			significant_words = ['is', 'love']
+		find and select words that are only in significant_words per dict
+        return (["is"])"""
+	return sf[col_name].dict_trim_by_keys(significant_words,exclude=exclude)
+
 #*******************
 #  Python helpers  *
 #*******************
@@ -86,4 +98,7 @@ def find_key_min(dict_values):
 
 def convert_sframe_to_simple_dict(sframe, sf_key_column, sf_values_column):
 	return dict(zip(list(sframe[sf_key_column]), list(sframe[sf_values_column])))
+
+def remove_punctuation(text):
+	return text.translate(None, string.punctuation)
 
