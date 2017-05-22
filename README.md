@@ -12,8 +12,4 @@
 ## Numpy Utils
 
  - `ml_numpy_utils.py` helper functions from Numpy  
- - API Documentation:: https://goo.gl/q7z0Sz 
-
-## Authors
-
- - Nadya Ortiz
+ - API Documentation:: https://goo.gl/q7z0Sz
