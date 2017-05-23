@@ -3,6 +3,7 @@ __date__ = "04/01/2017"
 
 import graphlab
 import string
+import json
 
 def set_canvas_target(mode='browser'):
 	"""mode: brower, ipynb, headless, none"""
@@ -102,3 +103,8 @@ def convert_sframe_to_simple_dict(sframe, sf_key_column, sf_values_column):
 def remove_punctuation(text):
 	return text.translate(None, string.punctuation)
 
+def load_json_file(file_path):
+	with open(file_path,'r') as f: # Reads the list of most frequent words
+		json_file = json.load(f)
+	json_file = map(lambda x: str(x), json_file)
+	return json_file
