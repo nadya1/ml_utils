@@ -88,6 +88,9 @@ def sframe_dict_trim(sf, col_name, significant_words, exclude=False):
         return (["is"])"""
 	return sf[col_name].dict_trim_by_keys(significant_words,exclude=exclude)
 
+def make_model_probability_prediction(model, dataset):
+	return model.predict(dataset,output_type='probability')
+
 #*******************
 #  Python helpers  *
 #*******************
@@ -108,3 +111,18 @@ def load_json_file(file_path):
 		json_file = json.load(f)
 	json_file = map(lambda x: str(x), json_file)
 	return json_file
+
+def unpack_features(data_set, features):
+	#UNPACK --> https://turi.com/products/create/docs/generated/graphlab.SFrame.unpack.html
+	for feature in features:
+		data_set_one_hot_encoded = data_set[feature].apply(lambda x:{x:1})
+		data_set_unpacked = data_set_one_hot_encoded.unpack(column_name_prefix=feature)
+
+		# Change None's to 0's
+		for column in data_set_unpacked.column_names():
+			data_set_unpacked[column] = data_set_unpacked[column].fillna(0)
+
+		data_set.remove_column(feature)
+		data_set.add_columns(data_set_unpacked)
+
+	return data_set

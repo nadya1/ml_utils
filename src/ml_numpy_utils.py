@@ -165,3 +165,17 @@ def compute_log_likelihood_with_L2(feature_matrix,sentiment,coefficients,l2_pena
 	log_likelihood = np.sum((indicator - 1) * scores - np.log(1. + np.exp(-scores)))
 	lp = log_likelihood - regularization
 	return lp
+
+def compute_false_positive(actual_label, predictions_val):
+	false_positive = 0
+	for idx in xrange(len(actual_label)):
+		if predictions_val[idx] == 1 and actual_label[idx] == -1:
+			false_positive += 1
+	return false_positive
+
+def compute_false_negative(actual_label, predictions_val):
+	false_positive = 0
+	for idx in xrange(len(actual_label)):
+		if predictions_val[idx] == -1 and actual_label[idx] == 1:
+			false_positive += 1
+	return false_positive
