@@ -88,8 +88,13 @@ def sframe_dict_trim(sf, col_name, significant_words, exclude=False):
         return (["is"])"""
 	return sf[col_name].dict_trim_by_keys(significant_words,exclude=exclude)
 
-def make_model_probability_prediction(model, dataset):
+def get_model_prediction_probability(model, dataset):
 	return model.predict(dataset,output_type='probability')
+
+def evaluate_model_accuracy(model, dataset):
+	"""e.g {'f1_score': #, 'auc': #, 'recall': #, 
+	'precision': #, 'roc_curve': .. ''accuracy'"""
+	return model.evaluate(dataset)['accuracy']
 
 #*******************
 #  Python helpers  *

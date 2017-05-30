@@ -156,7 +156,10 @@ class DecisionTree(object):
 		# Return the leaf node
 		return leaf
 
-	def decision_tree_create(self, data,features,target,current_depth=0,max_depth=10, verbose=True):
+	# def decision_tree_create(self, data,features,target,current_depth=0,max_depth=10, verbose=True):
+	def decision_tree_create(self, data,features,target,current_depth=0,max_depth=10,
+							min_node_size=1, min_error_reduction=0.0, verbose=True):
+
 		remaining_features = features[:] # Make a copy of the features.
 
 		target_values = data[target]
@@ -178,10 +181,17 @@ class DecisionTree(object):
 			# If there are no remaining features to consider, make current node a leaf node
 			return self.create_leaf(target_values)
 
+		# Early stopping condition 1
 		# Additional stopping condition (limit tree depth)
 		if current_depth >= max_depth:
 			if verbose: print "Reached maximum depth. Stopping for now."
 			# If the max tree depth has been reached, make current node a leaf node
+			return self.create_leaf(target_values)
+
+		# Early stopping condition 2: Reached the minimum node size.
+		# If the number of data points is less than or equal to the minimum size, return a leaf.
+		if self.reached_minimum_node_size(target_values,min_node_size):
+			if verbose: print "Early stopping condition 2 reached. Reached minimum node size."
 			return self.create_leaf(target_values)
 
 		# Find the best splitting feature (recall the function best_splitting_feature implemented above)
@@ -190,17 +200,34 @@ class DecisionTree(object):
 		# Split on the best feature that we found.
 		left_split = data[data[splitting_feature] == 0]
 		right_split = data[data[splitting_feature] == 1]
+
+		# Early stopping condition 3: Minimum error reduction
+		# Calculate the error before splitting (number of misclassified examples
+		# divided by the total number of examples)
+		error_before_split = self.intermediate_node_num_mistakes(target_values) / float(len(data))
+
+		# Calculate the error after splitting (number of misclassified examples
+		# in both groups divided by the total number of examples)
+		left_mistakes = self.intermediate_node_num_mistakes(left_split[target])
+		right_mistakes = self.intermediate_node_num_mistakes(right_split[target])
+		error_after_split = (left_mistakes + right_mistakes) / float(len(data))
+
+		# If the error reduction is LESS THAN OR EQUAL TO min_error_reduction, return a leaf.
+		if self.error_reduction(error_before_split,error_after_split) <= min_error_reduction:
+			if verbose: print "Early stopping condition 3 reached. Minimum error reduction."
+			return self.create_leaf(target_values)
+
 		remaining_features.remove(splitting_feature)
 		if verbose: print "Split on feature %s. (%s, %s)" % (splitting_feature, len(left_split), len(right_split))
 
-		# Create a leaf node if the split is "perfect"
-		if len(left_split) == len(data):
-			if verbose: print "Creating leaf node."
-			return self.create_leaf(left_split[target])
-
-		if len(right_split) == len(data):
-			if verbose: print "Creating leaf node."
-			return self.create_leaf(right_split[target])
+		# # Create a leaf node if the split is "perfect"
+		# if len(left_split) == len(data):
+		# 	if verbose: print "Creating leaf node."
+		# 	return self.create_leaf(left_split[target])
+		#
+		# if len(right_split) == len(data):
+		# 	if verbose: print "Creating leaf node."
+		# 	return self.create_leaf(right_split[target])
 
 		# Repeat (recurse) on left and right subtrees
 		left_tree = self.decision_tree_create(left_split, remaining_features, target, current_depth + 1, max_depth, verbose)
@@ -217,6 +244,11 @@ class DecisionTree(object):
 		if tree['is_leaf']:
 			return 1
 		return 1 + self.count_nodes(tree['left']) + self.count_nodes(tree['right'])
+
+	def count_leaves(self, tree):
+		if tree['is_leaf']:
+			return 1
+		return self.count_leaves(tree['left']) + self.count_leaves(tree['right'])
 
 	def classify(self, tree, x, verbose=False):
 		# if the node is a leaf node.
@@ -268,6 +300,16 @@ class DecisionTree(object):
 		('leaf, label: ' + str(tree['left']['prediction']) if tree['left']['is_leaf'] else 'subtree'),
 		('leaf, label: ' + str(tree['right']['prediction']) if tree['right']['is_leaf'] else 'subtree'))
 
+	def reached_minimum_node_size(self, data,min_node_size):
+		# Return True if the number of data points is less than or equal to the minimum node size.
+		if len(data) <= min_node_size:
+			return True
+		return False
+
+	def error_reduction(self, error_before_split,error_after_split):
+		# Return the error before the split minus the error after the split.
+		return (error_before_split - error_after_split)
+
 #==================================================================
 #                   Helper Functions
 #==================================================================
@@ -301,4 +343,9 @@ def get_classification_accuracy(feature_matrix,sentiment,coefficients):
 	num_correct = (predictions == sentiment).sum()
 	accuracy = num_correct / float(len(feature_matrix))
 	return accuracy
+
+def get_classification_error(model, dataset):
+	accuracy = model.evaluate(dataset)['accuracy']
+	return (1-accuracy)
+
 
