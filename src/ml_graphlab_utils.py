@@ -117,8 +117,9 @@ def load_json_file(file_path):
 	json_file = map(lambda x: str(x), json_file)
 	return json_file
 
-def unpack_features(data_set, features):
-	#UNPACK --> https://turi.com/products/create/docs/generated/graphlab.SFrame.unpack.html
+def transform_categorical_into_bin_features(data_set, features):
+	"""Transform categorical data into binary features
+		UNPACK --> https://turi.com/products/create/docs/generated/graphlab.SFrame.unpack.html """
 	for feature in features:
 		data_set_one_hot_encoded = data_set[feature].apply(lambda x:{x:1})
 		data_set_unpacked = data_set_one_hot_encoded.unpack(column_name_prefix=feature)
@@ -131,3 +132,16 @@ def unpack_features(data_set, features):
 		data_set.add_columns(data_set_unpacked)
 
 	return data_set
+
+def subsample_dataset_to_balance_classes(dataset, target):
+	"""Subsample dataset to make sure classes are balanced"""
+	positive_raw = dataset[dataset[target] == +1]
+	negative_raw = dataset[dataset[target] == -1] 
+	percentage = len(negative_raw) / float(len(positive_raw))
+	 
+	negative_predictions = negative_raw
+	positive_predictions = positive_raw.sample(percentage,seed=1)
+ 
+	new_dataset = negative_predictions.append(positive_predictions)
+
+	return new_dataset

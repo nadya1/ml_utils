@@ -156,9 +156,9 @@ class DecisionTree(object):
 		# Return the leaf node
 		return leaf
 
-	# def decision_tree_create(self, data,features,target,current_depth=0,max_depth=10, verbose=True):
-	def decision_tree_create(self, data,features,target,current_depth=0,max_depth=10,
-							min_node_size=1, min_error_reduction=0.0, verbose=True):
+	def decision_tree_create(self, data, features, target, current_depth = 0,
+							 max_depth = 10, min_node_size=1,
+							 min_error_reduction=0.0, verbose=True):
 
 		remaining_features = features[:] # Make a copy of the features.
 
@@ -167,25 +167,19 @@ class DecisionTree(object):
 			print "--------------------------------------------------------------------"
 			print "Subtree, depth = %s (%s data points)." % (current_depth,len(target_values))
 
-		# Stopping condition 1
-		# (Check if there are mistakes at current node.
+		# Stopping condition 1: All nodes are of the same type.
 		if self.intermediate_node_num_mistakes(target_values) == 0:
-			if verbose: print "Stopping condition 1 reached."
-			# If not mistakes at current node, make current node a leaf node
+			if verbose: print "Stopping condition 1 reached. All data points have the same target value."
 			return self.create_leaf(target_values)
 
-		# Stopping condition 2
-		# (check if there are remaining features to consider splitting on)
+		# Stopping condition 2: No more features to split on.
 		if remaining_features == []:
-			if verbose: print "Stopping condition 2 reached."
-			# If there are no remaining features to consider, make current node a leaf node
+			if verbose: print "Stopping condition 2 reached. No remaining features."
 			return self.create_leaf(target_values)
 
-		# Early stopping condition 1
-		# Additional stopping condition (limit tree depth)
+		# Early stopping condition 1: Reached max depth limit.
 		if current_depth >= max_depth:
-			if verbose: print "Reached maximum depth. Stopping for now."
-			# If the max tree depth has been reached, make current node a leaf node
+			if verbose: print "Early stopping condition 1 reached. Reached maximum depth."
 			return self.create_leaf(target_values)
 
 		# Early stopping condition 2: Reached the minimum node size.
@@ -194,7 +188,7 @@ class DecisionTree(object):
 			if verbose: print "Early stopping condition 2 reached. Reached minimum node size."
 			return self.create_leaf(target_values)
 
-		# Find the best splitting feature (recall the function best_splitting_feature implemented above)
+		# Find the best splitting feature
 		splitting_feature = self.best_splitting_feature(data,features,target)
 
 		# Split on the best feature that we found.
@@ -220,23 +214,17 @@ class DecisionTree(object):
 		remaining_features.remove(splitting_feature)
 		if verbose: print "Split on feature %s. (%s, %s)" % (splitting_feature, len(left_split), len(right_split))
 
-		# # Create a leaf node if the split is "perfect"
-		# if len(left_split) == len(data):
-		# 	if verbose: print "Creating leaf node."
-		# 	return self.create_leaf(left_split[target])
-		#
-		# if len(right_split) == len(data):
-		# 	if verbose: print "Creating leaf node."
-		# 	return self.create_leaf(right_split[target])
-
 		# Repeat (recurse) on left and right subtrees
-		left_tree = self.decision_tree_create(left_split, remaining_features, target, current_depth + 1, max_depth, verbose)
+		left_tree = self.decision_tree_create(left_split, remaining_features, target,
+			current_depth + 1, max_depth, min_node_size, min_error_reduction, verbose)
 
-		right_tree = self.decision_tree_create(right_split, remaining_features, target, current_depth + 1, max_depth, verbose)
+		right_tree = self.decision_tree_create(right_split, remaining_features, target,
+			current_depth + 1, max_depth, min_node_size, min_error_reduction, verbose)
 
-		leaf = {'is_leaf':False,'prediction':None,
+		leaf = {'is_leaf':False, 'prediction':None,
 				'splitting_feature':splitting_feature,
-				'left':left_tree,'right':right_tree,}
+				'left':left_tree,
+				'right':right_tree}
 
 		return leaf
 
@@ -315,8 +303,8 @@ class DecisionTree(object):
 #==================================================================
 def get_model_classification_accuracy(model,data,true_labels):
 	""" e.g model = sentiment_model,
-		    data = test_data,
-		    labels = test_data['sentiment'] (+1,-1,-1....)
+			data = test_data,
+			labels = test_data['sentiment'] (+1,-1,-1....)
 		accuracy = # correctly classified examples / total examples"""
 
 	# First get the predictions
