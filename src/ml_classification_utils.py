@@ -3,6 +3,8 @@ __author__ = 'nadyaK'
 __date__ = '05/12/2017'
 
 import ml_numpy_utils as np_utils
+import graphlab as gp
+from math import log, exp
 
 class LogisticRegression(object):
 	"""simple linear regression model """
@@ -298,6 +300,198 @@ class DecisionTree(object):
 		# Return the error before the split minus the error after the split.
 		return (error_before_split - error_after_split)
 
+class AdaBoost(DecisionTree):
+
+	def __init__(self):
+		super(AdaBoost, self).__init__()
+		self.__name__ = 'adaboost_tree_model'
+
+	def best_splitting_feature_weighted(self, data, features, target, data_weights):
+		# These variables will keep track of the best feature and the corresponding error
+		best_feature = None
+		best_error = float('+inf')
+		num_points = float(len(data))
+
+		# Loop through each feature to consider splitting on that feature
+		for feature in features:
+			# The left split will have all data points where the feature value is 0
+			# The right split will have all data points where the feature value is 1
+			left_split = data[data[feature] == 0]
+			right_split = data[data[feature] == 1]
+
+			# Apply the same filtering to data_weights to create left_data_weights, right_data_weights
+			left_data_weights = data_weights[data[feature] == 0]
+			right_data_weights = data_weights[data[feature] == 1]
+
+			# Calculate the weight of mistakes for left and right sides
+			left_weighted_mistakes,left_class = self.intermediate_node_weighted_mistakes(left_split[target],
+				left_data_weights)
+			right_weighted_mistakes,right_class = self.intermediate_node_weighted_mistakes(right_split[target],
+				right_data_weights)
+
+			# Compute weighted error by computing
+			#  ( [weight of mistakes (left)] + [weight of mistakes (right)] ) / [total weight of all data points]
+			error = (left_weighted_mistakes + right_weighted_mistakes) / num_points
+
+			# If this is the best error we have found so far, store the feature and the error
+			if error < best_error:
+				best_feature = feature
+				best_error = error
+
+		# Return the best feature we found
+		return best_feature
+
+	def intermediate_node_weighted_mistakes(self, labels_in_node,data_weights):
+		# Sum the weights of all entries with label +1
+		total_weight_positive = sum(data_weights[labels_in_node == +1])
+
+		# Weight of mistakes for predicting all -1's is equal to the sum above
+		weighted_mistakes_all_negative = total_weight_positive
+
+		# Sum the weights of all entries with label -1
+		total_weight_negative = sum(data_weights[labels_in_node == -1])
+
+		# Weight of mistakes for predicting all +1's is equal to the sum above
+		weighted_mistakes_all_positive = total_weight_negative
+
+		# Return the tuple (weight, class_label) representing the lower of the two weights
+		#    class_label should be an integer of value +1 or -1.
+		# If the two weights are identical, return (weighted_mistakes_all_positive,+1)
+		if weighted_mistakes_all_negative < weighted_mistakes_all_positive:
+			return (weighted_mistakes_all_negative,-1)
+		else:
+			return (weighted_mistakes_all_positive,+1)
+
+	def create_leaf_weighted(self, target_values, data_weights):
+		# Create a leaf node
+		leaf = {'splitting_feature':None,'is_leaf':True}
+
+		# Computed weight of mistakes.
+		weighted_error,best_class = self.intermediate_node_weighted_mistakes(target_values,data_weights)
+
+		# Store the predicted class (1 or -1) in leaf['prediction']
+		leaf['prediction'] = 1 if best_class == 1 else -1
+
+		return leaf
+
+	def weighted_decision_tree_create(self, data, features, target, data_weights,
+						                current_depth=1,max_depth=10,verbose=True):
+
+		remaining_features = features[:] # Make a copy of the features.
+		target_values = data[target]
+		if verbose:
+			print "--------------------------------------------------------------------"
+			print "Subtree, depth = %s (%s data points)." % (current_depth,len(target_values))
+
+		# Stopping condition 1. Error is 0.
+		if self.intermediate_node_weighted_mistakes(target_values,data_weights)[0] <= 1e-15:
+			if verbose: print "Stopping condition 1 reached."
+			return self.create_leaf_weighted(target_values,data_weights)
+
+		# Stopping condition 2. No more features.
+		if remaining_features == []:
+			if verbose: print "Stopping condition 2 reached."
+			return self.create_leaf_weighted(target_values,data_weights)
+
+		# Additional stopping condition (limit tree depth)
+		if current_depth > max_depth:
+			if verbose: print "Reached maximum depth. Stopping for now."
+			return self.create_leaf_weighted(target_values,data_weights)
+
+		splitting_feature = self.best_splitting_feature_weighted(data,features,target,data_weights)
+		remaining_features.remove(splitting_feature)
+
+		left_split = data[data[splitting_feature] == 0]
+		right_split = data[data[splitting_feature] == 1]
+
+		left_data_weights = data_weights[data[splitting_feature] == 0]
+		right_data_weights = data_weights[data[splitting_feature] == 1]
+
+		if verbose:
+			print "Split on feature %s. (%s, %s)" % (splitting_feature, len(left_split), len(right_split))
+
+		# Create a leaf node if the split is "perfect"
+		if len(left_split) == len(data):
+			if verbose: print "Creating leaf node."
+			return self.create_leaf_weighted(left_split[target], data_weights)
+		if len(right_split) == len(data):
+			if verbose: print "Creating leaf node."
+			return self.create_leaf_weighted(right_split[target], data_weights)
+
+		# Repeat (recurse) on left and right subtrees
+		left_tree = self.weighted_decision_tree_create(
+			left_split, remaining_features, target, left_data_weights, current_depth + 1, max_depth, verbose=verbose)
+		right_tree = self.weighted_decision_tree_create(
+			right_split, remaining_features, target, right_data_weights, current_depth + 1, max_depth, verbose=verbose)
+
+		leaf = {'is_leaf'          : False,
+				'prediction'       : None,
+				'splitting_feature': splitting_feature,
+				'left'             : left_tree,
+				'right'            : right_tree}
+
+		return leaf
+
+	def adaboost_with_tree_stumps(self, data, features, target, num_tree_stumps, verbose=True):
+		# start with unweighted data
+		alpha = gp.graphlab.SArray([1.] * len(data))
+		weights = []
+		tree_stumps = []
+		target_values = data[target]
+
+		for t in xrange(num_tree_stumps):
+			if verbose:
+				print '====================================================='
+				print 'Adaboost Iteration %d' % t
+				print '====================================================='
+			# Learn a weighted decision tree stump. Use max_depth=1
+			tree_stump = self.weighted_decision_tree_create(data,features,target,data_weights=alpha,
+															max_depth=1, verbose=verbose)
+			tree_stumps.append(tree_stump)
+
+			# Make predictions
+			predictions = data.apply(lambda x:self.classify(tree_stump,x))
+
+			# Produce a Boolean array indicating whether
+			# each data point was correctly classified
+			is_correct = predictions == target_values
+			is_wrong = predictions != target_values
+
+			# Compute weighted error
+			#weighted_error = is_wrong.sum()/float(is_correct.sum()+is_wrong.sum())
+			weighted_error = alpha[is_wrong].sum() / float(alpha.sum())
+
+			# Compute model coefficient using weighted error
+			weight = (1 / 2.0) * log((1 - weighted_error) / weighted_error)
+			weights.append(weight)
+
+			# Adjust weights on data point
+			adjustment = is_correct.apply(lambda is_correct:exp(-weight) if is_correct else exp(weight))
+
+			# Scale alpha by multiplying by adjustment
+			# Then normalize data points weights
+			alpha = alpha * adjustment
+			alpha = alpha / float(sum(alpha))
+
+		return weights,tree_stumps
+
+	def predict_adaboost(self, stump_weights,tree_stumps,data):
+		scores = gp.graphlab.SArray([0.] * len(data))
+
+		for i,tree_stump in enumerate(tree_stumps):
+			predictions = data.apply(lambda x:self.classify(tree_stump,x))
+
+			# Accumulate predictions on scores array
+			scores = scores + (stump_weights[i] * predictions)
+
+		return scores.apply(lambda score:+1 if score > 0 else -1)
+
+	def evaluate_classification_error_weighted(self,tree,data,target):
+		# Apply the classify(tree, x) to each row in your data
+		prediction = data.apply(lambda x:self.classify(tree,x))
+
+		# Once you've made the predictions, calculate the classification error
+		return (prediction != data[target]).sum() / float(len(data))
 #==================================================================
 #                   Helper Functions
 #==================================================================
@@ -336,4 +530,9 @@ def get_classification_error(model, dataset):
 	accuracy = model.evaluate(dataset)['accuracy']
 	return (1-accuracy)
 
-
+def get_training_errors(model_n, dataset, model_name):
+	training_errors = []
+	for n_iterations in model_name:
+		accuracy_n = model_n[n_iterations].evaluate(dataset)['accuracy']
+		training_errors.append(1-accuracy_n)
+	return training_errors
