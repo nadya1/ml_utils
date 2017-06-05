@@ -158,6 +158,19 @@ def compute_log_likelihood(feature_matrix, sentiment, coefficients):
 	lp = np.sum((indicator - 1) * scores - logexp)
 	return lp
 
+def compute_avg_log_likelihood(feature_matrix,sentiment,coefficients):
+	indicator = (sentiment == +1)
+	scores = np.dot(feature_matrix,coefficients)
+	logexp = np.log(1. + np.exp(-scores))
+
+	# Simple check to prevent overflow
+	mask = np.isinf(logexp)
+	logexp[mask] = -scores[mask]
+
+	lp = np.sum((indicator - 1) * scores - logexp) / len(feature_matrix)
+
+	return lp
+
 def compute_log_likelihood_with_L2(feature_matrix,sentiment,coefficients,l2_penalty):
 	indicator = (sentiment == +1)
 	scores = np.dot(feature_matrix,coefficients)

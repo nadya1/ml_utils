@@ -2,6 +2,7 @@ __author__ = 'nadyaK'
 __date__ = '05/12/2017'
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 def make_coefficient_plot(table,positive_words,negative_words,l2_penalty_list,output_file):
 	plt.rcParams['figure.figsize'] = 10,6
@@ -70,9 +71,9 @@ def make_train_error_vs_val_error_trees_plot(training_errors, validation_errors,
 	plt.plot([10, 50, 100, 200, 500], validation_errors, linewidth=4.0, label='Validation error')
 
 	make_figure(dim=(10,5), title='Error vs number of trees',
-	            xlabel='Number of trees',
-	            ylabel='Classification error',
-	            legend='best')
+				xlabel='Number of trees',
+				ylabel='Classification error',
+				legend='best')
 	plt.savefig(output_file)
 	plt.close()
 
@@ -101,3 +102,33 @@ def make_performance_of_adaboost_plot_error(error_all, test_error_all,output_fil
 	plt.tight_layout()
 	plt.savefig(output_file)
 	plt.close()
+
+def plot_pr_curve(precision, recall, title, output_file):
+	plt.rcParams['figure.figsize'] = 7, 5
+	plt.locator_params(axis = 'x', nbins = 5)
+	plt.plot(precision, recall, 'b-', linewidth=4.0, color = '#B0017F')
+	plt.title(title)
+	plt.xlabel('Precision')
+	plt.ylabel('Recall')
+	plt.rcParams.update({'font.size': 16})
+	plt.savefig(output_file)
+	plt.close()
+
+def make_plot_log_likelihood(log_likelihood_all,len_data,batch_size,
+							smoothing_window=1,label='',output_file=''):
+	plt.rcParams.update({'figure.figsize':(9,5)})
+	log_likelihood_all_ma = np.convolve(np.array(log_likelihood_all),np.ones((smoothing_window,) ) /smoothing_window, mode='valid')
+	plt.plot(np.array(range( smoothing_window -1, len(log_likelihood_all)) ) *float(batch_size ) /len_data,
+		log_likelihood_all_ma, linewidth=4.0, label=label)
+	plt.rcParams.update({'font.size': 16})
+	plt.tight_layout()
+	plt.xlabel('# of passes over data')
+	plt.ylabel('Average log likelihood per data point')
+	plt.legend(loc='lower right', prop={'size':14})
+	#plt.xlim(0,2)
+	if output_file != '':
+		plt.savefig(output_file)
+		plt.close()
+
+
+

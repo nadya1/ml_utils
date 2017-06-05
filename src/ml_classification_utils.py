@@ -4,7 +4,7 @@ __date__ = '05/12/2017'
 
 import ml_numpy_utils as np_utils
 import graphlab as gp
-from math import log, exp
+from math import log, exp, sqrt
 
 class LogisticRegression(object):
 	"""simple linear regression model """
@@ -375,7 +375,7 @@ class AdaBoost(DecisionTree):
 		return leaf
 
 	def weighted_decision_tree_create(self, data, features, target, data_weights,
-						                current_depth=1,max_depth=10,verbose=True):
+										current_depth=1,max_depth=10,verbose=True):
 
 		remaining_features = features[:] # Make a copy of the features.
 		target_values = data[target]
@@ -492,6 +492,67 @@ class AdaBoost(DecisionTree):
 
 		# Once you've made the predictions, calculate the classification error
 		return (prediction != data[target]).sum() / float(len(data))
+
+class LogisticRregStochastic(object):
+	def __init__(self):
+		self.__name__="logistic_regression_stochastic_model"
+
+	def logistic_regression_SG(self, feature_matrix,sentiment,initial_coefficients,step_size,batch_size,max_iter,verbose=True):
+		log_likelihood_all = []
+
+		# make sure it's a numpy array
+		coefficients = np_utils.np.array(initial_coefficients)
+		# set seed=1 to produce consistent results
+		np_utils.np.random.seed(seed=1)
+		# Shuffle the data before starting
+		permutation = np_utils.np.random.permutation(len(feature_matrix))
+		feature_matrix = feature_matrix[permutation,:]
+		sentiment = sentiment[permutation]
+
+		i = 0 # index of current batch
+		# Do a linear scan over data
+		for itr in xrange(max_iter):
+			# Predict P(y_i = +1|x_i,w) using your predict_probability() function
+			# Make sure to slice the i-th row of feature_matrix with [i:i+batch_size,:]
+			predictions = np_utils.predict_probability(feature_matrix[i:i + batch_size,:],coefficients)
+
+			# Compute indicator value for (y_i = +1)
+			# Make sure to slice the i-th entry with [i:i+batch_size]
+			indicator = (sentiment[i:i + batch_size] == +1)
+
+			# Compute the errors as indicator - predictions
+			errors = indicator - predictions
+			for j in xrange(len(coefficients)): # loop over each coefficient
+				# Recall that feature_matrix[:,j] is the feature column associated with coefficients[j]
+				# Compute the derivative for coefficients[j] and save it to derivative.
+				# Make sure to slice the i-th row of feature_matrix with [i:i+batch_size,j]
+				derivative = np_utils.feature_derivative(errors,feature_matrix[i:i + batch_size,j])
+
+				# compute the product of the step size, the derivative, and the **normalization constant** (1./batch_size)
+				coefficients[j] += step_size * derivative * (1. / batch_size)
+
+			# Checking whether log likelihood is increasing
+			# Print the log likelihood over the *current batch*
+			lp = np_utils.compute_avg_log_likelihood(feature_matrix[i:i + batch_size,:],sentiment[i:i + batch_size],coefficients)
+			log_likelihood_all.append(lp)
+			if verbose:
+				if itr <= 15 or (itr <= 1000 and itr % 100 == 0) or (
+						itr <= 10000 and itr % 1000 == 0) or itr % 10000 == 0 or itr == max_iter - 1:
+					data_size = len(feature_matrix)
+					print 'Iteration %*d: Average log likelihood (of data points in batch [%0*d:%0*d]) = %.8f' % (
+					int(np_utils.np.ceil(np_utils.np.log10(max_iter))),itr,int(np_utils.np.ceil(np_utils.np.log10(data_size))), i,\
+						      int(np_utils.np.ceil(np_utils.np.log10(data_size))), i+ batch_size,lp)
+
+			# if we made a complete pass over data, shuffle and restart
+			i += batch_size
+			if i + batch_size > len(feature_matrix):
+				permutation = np_utils.np.random.permutation(len(feature_matrix))
+				feature_matrix = feature_matrix[permutation,:]
+				sentiment = sentiment[permutation]
+				i = 0
+
+		# We return the list of log likelihoods for plotting purposes.
+		return coefficients,log_likelihood_all
 #==================================================================
 #                   Helper Functions
 #==================================================================
@@ -536,3 +597,7 @@ def get_training_errors(model_n, dataset, model_name):
 		accuracy_n = model_n[n_iterations].evaluate(dataset)['accuracy']
 		training_errors.append(1-accuracy_n)
 	return training_errors
+
+def apply_threshold(probabilities, threshold):
+	# +1 if >= threshold and -1 otherwise.
+	return probabilities.apply(lambda prob: +1 if prob >= threshold else -1)
