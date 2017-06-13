@@ -3,13 +3,16 @@
  - cd ./ml_utils
  - `<sudo python setup.py install>`
 
-## GraphLab utils
+## Machine Learning Utilities
 
- - `ml_graphlab_utils.py` helper functions from GraphLab 
- - API Documentation: [GraphLab Create API](https://goo.gl/vItEiB)
- - API ML: [GraphLab Machine Learning API](https://goo.gl/AiPMer)
+ - [GraphLab](https://gitlab.com/nadyaK/ml_utils/blob/master/src/ml_graphlab_utils.py)
+ - [Numpy](https://gitlab.com/nadyaK/ml_utils/blob/master/src/ml_numpy_utils.py)
+ - [Plotting](https://gitlab.com/nadyaK/ml_utils/blob/master/src/ml_plotting_utils.py)
+ - [ML-Regression](https://gitlab.com/nadyaK/ml_utils/blob/master/src/ml_regression_utils.py)
+ - [ML-Classification](https://gitlab.com/nadyaK/ml_utils/blob/master/src/ml_classification_utils.py)
 
-## Numpy Utils
-
- - `ml_numpy_utils.py` helper functions from Numpy  
- - API Documentation:: [The Basics Numpy](https://goo.gl/q7z0Sz)
+## Documentations (API)
+ 
+ - [API GraphLab Create](https://goo.gl/vItEiB)
+ - [API GraphLab Machine Learning](https://goo.gl/AiPMer)
+ - [API Numpy](https://goo.gl/q7z0Sz)
